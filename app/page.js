@@ -6,8 +6,10 @@ export default function Home() {
   return (
     <div>
       <h2>Hi</h2>
-      <Button variant="destructive">Go Back</Button>
-      <UserButton/>
+      <Button>
+        Go Back
+      </Button>
+      <UserButton />
     </div>
   );
 }
