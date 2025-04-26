@@ -36,13 +36,14 @@ function SelectStyle({ onUserSelect }) {
       <div className="grid grid-cols-5 gap-5 mt-3 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {styleOptions.map((item, index) => (
           <div
+            key={item.name}
             className={`relative transition-all cursor-pointer hover:scale-105 rounded-xl ${
               selectedOption == item.name && "border-4 border-primary"
             }`}
           >
             <Image
               src={item.image}
-              alt=""
+              alt={item.name}
               width={100}
               height={100}
               className="object-cover w-full h-48 rounded-lg"

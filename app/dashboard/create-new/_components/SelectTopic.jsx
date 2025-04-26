@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-function SelectTopic(onUserSelect) {
+function SelectTopic({onUserSelect}) {
   const options = [
     "Custom Prompt",
     "Random AI Story",
@@ -34,7 +34,7 @@ function SelectTopic(onUserSelect) {
         </SelectTrigger>
         <SelectContent>
           {options.map((item, index) => (
-            <SelectItem value={item}>{item}</SelectItem>
+            <SelectItem key={index} value={item}>{item}</SelectItem>
           ))}
         </SelectContent>
       </Select>
