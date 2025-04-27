@@ -6,10 +6,16 @@ import SelectStyle from "./_components/SelectStyle";
 import SelectDuration from "./_components/SelectDuration";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
+import CustomLoading from "./_components/CustomLoading";
+import { v4 as uuidv4 } from "uuid";
 
+const scriptData =
+  "In the pixelated city of Gridopolis, lived a little electric car named Sparky. Sparky loved to zoom around, but sometimes he needed to recharge his batteries. One night, Sparky got lost in a dark, pixelated forest. But he wasn't alone. He met a group of friendly fireflies who lit up the way. The fireflies guided Sparky back to the city, their lights twinkling like tiny stars. Sparky made it home safely, thanks to his new friends, and dreamed of their magical glow.";
 function CreateNew() {
   const [formData, setFormData] = useState({});
-  
+  const [loading, setLoading] = useState(false);
+  const [videoScript, setVideoScript] = useState();
+
   const onHandleInputChange = (fieldName, fieldValue) => {
     console.log(fieldName, fieldValue);
     setFormData((prev) => ({
@@ -19,11 +25,13 @@ function CreateNew() {
   };
 
   const onCreateClickHandler = () => {
-    GetVideoScript();
+    // GetVideoScript();
+    GenerateAudioFile(scriptData);
   };
 
   //Get video script
   const GetVideoScript = async () => {
+    setLoading(true);
     const prompt =
       "Write a script to generate " +
       formData.duration +
@@ -34,11 +42,35 @@ function CreateNew() {
       " format for each scene and give me result in JSON format with imagePrompt and ContentText as field,No Plain text";
     console.log(prompt);
 
-    const result = await axios.post("/api/get-video-script", {
-      prompt: prompt,
-    }).then(resp=>{
-      console.log(resp.data);
-    });
+    const result = await axios
+      .post("/api/get-video-script", {
+        prompt: prompt,
+      })
+      .then((resp) => {
+        setVideoScript(resp.data.result);
+        GenerateAudioFile(resp.data.result);
+      });
+    setLoading(false);
+  };
+
+  const GenerateAudioFile = async (videoScriptData) => {
+    setLoading(true);
+      let script = "";
+      const id = uuidv4();
+      // videoScriptData.forEach((item) => {
+      //   script = script + item.ContentText + " ";
+      // });
+
+      await axios
+        .post("/api/generate-audio", {
+          text: videoScriptData,
+          id: id,
+        })
+        .then((resp) => {
+          console.log(resp.data);
+        });
+      setLoading(false)
+
   };
   return (
     <div className="md:px-20">
@@ -57,6 +89,7 @@ function CreateNew() {
           Create Short Video
         </Button>
       </div>
+      <CustomLoading loading={loading} />
     </div>
   );
 }
