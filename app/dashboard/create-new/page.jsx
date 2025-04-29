@@ -15,9 +15,10 @@ function CreateNew() {
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [videoScript, setVideoScript] = useState();
-
+  const [audioFileUrl, setAudioFileUrl] = useState();
   const onHandleInputChange = (fieldName, fieldValue) => {
     console.log(fieldName, fieldValue);
+    
     setFormData((prev) => ({
       ...prev,
       [fieldName]: fieldValue,
@@ -41,7 +42,6 @@ function CreateNew() {
       formData.imageStyle +
       " format for each scene and give me result in JSON format with imagePrompt and ContentText as field,No Plain text";
     console.log(prompt);
-
     const result = await axios
       .post("/api/get-video-script", {
         prompt: prompt,
@@ -54,23 +54,21 @@ function CreateNew() {
   };
 
   const GenerateAudioFile = async (videoScriptData) => {
-    setLoading(true);
-      let script = "";
-      const id = uuidv4();
-      // videoScriptData.forEach((item) => {
-      //   script = script + item.ContentText + " ";
-      // });
+    let script = "";
+    const id = uuidv4();
+    // videoScriptData.forEach((item) => {
+    //   script = script + item.ContentText + " ";
+    // });
 
-      await axios
-        .post("/api/generate-audio", {
-          text: videoScriptData,
-          id: id,
-        })
-        .then((resp) => {
-          console.log(resp.data);
-        });
-      setLoading(false)
-
+    await axios
+      .post("/api/generate-audio", {
+        text: videoScriptData,
+        id: id,
+      })
+      .then((resp) => {
+        setAudioFileUrl(resp.data.result)
+      });
+    setLoading(false);
   };
   return (
     <div className="md:px-20">

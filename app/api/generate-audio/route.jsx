@@ -1,7 +1,9 @@
+export const runtime = "nodejs";
+
 import textToSpeech from "@google-cloud/text-to-speech";
 import { NextResponse } from "next/server";
-import fs from "fs";
-import util from "util";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { storage } from "@/configs/FirebaseConfig";
 
 const client = new textToSpeech.TextToSpeechClient({
   apiKey: process.env.GOOGLE_API_KEY,
@@ -9,21 +11,22 @@ const client = new textToSpeech.TextToSpeechClient({
 
 export async function POST(req) {
   const { text, id } = await req.json();
-
+  const storageRef=ref(storage,'ai-video-generator/'+id+'.mp3')
   const request = {
     input: { text: text },
-    // Select the language and SSML voice gender (optional)
     voice: { languageCode: "en-US", ssmlGender: "FEMALE" },
-    // select the type of audio encoding
     audioConfig: { audioEncoding: "MP3" },
   };
 
-  // Performs the text-to-speech request
+  // Perform the text-to-speech request
   const [response] = await client.synthesizeSpeech(request);
-  // Write the binary audio content to a local file
-  const writeFile = util.promisify(fs.writeFile);
-  await writeFile("output.mp3", response.audioContent, "binary");
-  console.log("Audio content written to file: output.mp3");
+  
+  const audioBuffer=Buffer.from(response.audioContent,'binary');
 
-  return NextResponse.json({ Result: "Success" });
+  await uploadBytes(storageRef,audioBuffer,{contentType: 'audio/mp3'});
+
+  const downloadUrl=await getDownloadURL(storageRef);
+  console.log(downloadUrl);  
+
+  return NextResponse.json({ Result: downloadUrl});
 }
