@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import SelectTopic from "./_components/SelectTopic";
 import SelectStyle from "./_components/SelectStyle";
 import SelectDuration from "./_components/SelectDuration";
@@ -8,26 +8,10 @@ import { Button } from "@/components/ui/button";
 import axios from "axios";
 import CustomLoading from "./_components/CustomLoading";
 import { v4 as uuidv4 } from "uuid";
-
-const scriptData =
-  "In the pixelated city of Gridopolis, lived a little electric car named Sparky. Sparky loved to zoom around, but sometimes he needed to recharge his batteries. One night, Sparky got lost in a dark, pixelated forest. But he wasn't alone. He met a group of friendly fireflies who lit up the way. The fireflies guided Sparky back to the city, their lights twinkling like tiny stars. Sparky made it home safely, thanks to his new friends, and dreamed of their magical glow.";
-const audioFile =
-  "https://firebasestorage.googleapis.com/v0/b/romie-startups.firebasestorage.app/o/ai-video-generator%2F3b1fce66-7a87-47ef-8813-c8adca2ab3ac.mp3?alt=media&token=11326c42-904e-4a73-a46d-f8cf3ec23596";
-
-const VideoSCRIPT = [
-  {
-    imagePrompt:
-      "Realistic photo of ancient Egyptian temple walls covered in weathered hieroglyphs under a golden desert sun, dust motes floating in the air, evoking a sense of mystery and forgotten knowledge.",
-    contentText:
-      "For centuries, the secrets of ancient Egypt were locked away. Their intricate hieroglyphs, a beautiful but lost language, remained a profound mystery to the world.",
-  },
-  {
-    imagePrompt:
-      "Realistic photo depicting French soldiers in late 18th-century uniforms digging near the town of Rosetta in Egypt. One soldier points excitedly at a partially unearthed large, dark stone slab buried in the sand. Hot, dusty atmosphere.",
-    contentText:
-      "Then, in 1799, during Napoleon's campaign in Egypt, a pivotal discovery was made near the town of Rosetta. French soldiers unearthed a stone unlike any other.",
-  },
-];
+import { VideoDataContext } from "@/app/_context/VideoDataContext";
+import { db } from "@/configs/db";
+import { VideoData } from "@/configs/schema";
+import { useUser } from "@clerk/nextjs";
 
 function CreateNew() {
   const [formData, setFormData] = useState({});
@@ -36,6 +20,8 @@ function CreateNew() {
   const [audioFileUrl, setAudioFileUrl] = useState();
   const [captions, setCaptions] = useState();
   const [imageList, setImageList] = useState();
+  const { videoData, setVideoData } = useContext(VideoDataContext);
+  const { user } = useUser();
   const onHandleInputChange = (fieldName, fieldValue) => {
     console.log(fieldName, fieldValue);
 
@@ -46,10 +32,10 @@ function CreateNew() {
   };
 
   const onCreateClickHandler = () => {
-    // GetVideoScript();
+    GetVideoScript();
     // GenerateAudioFile(scriptData);
     // GenerateAudioCaption(audioFile);
-    GenerateImage();
+    // GenerateImage();
   };
 
   //Get video script
@@ -64,17 +50,24 @@ function CreateNew() {
       formData.imageStyle +
       " format for each scene and give me result in JSON format with imagePrompt and ContentText as field,No Plain text";
     console.log(prompt);
-    const result = await axios
-      .post("/api/get-video-script", {
-        prompt: prompt,
-      })
-      .then((resp) => {
-        console.log("EXE");
-        setVideoScript(resp.data.result);
-        resp.data.result && GenerateAudioFile(resp.data.result);
-      });
+
+    const resp = await axios.post("/api/get-video-script", {
+      prompt: prompt,
+    });
+    if (resp.data.result) {
+      setVideoData((prev) => ({
+        ...prev,
+        videoScript: resp.data.result,
+      }));
+      setVideoScript(resp.data.result);
+      await GenerateAudioFile(resp.data.result);
+    }
   };
 
+  /**
+   * Generate Audio File and Save to Firebase Storage.
+   * @param {*} videoScriptData
+   */
   const GenerateAudioFile = async (videoScriptData) => {
     setLoading(true);
     let script = "";
@@ -83,48 +76,94 @@ function CreateNew() {
       script = script + item.ContentText + " ";
     });
 
-    await axios
-      .post("/api/generate-audio", {
+    try {
+      console.log("Generating audio for script:", script);
+      const resp = await axios.post("/api/generate-audio", {
         text: script,
         id: id,
-      })
-      .then((resp) => {
-        setAudioFileUrl(resp.data.result);
-        resp.data.result && GenerateAudioCaption(resp.data.result);
       });
+      console.log("Audio generation response:", resp.data);
+      setVideoData((prev) => ({
+        ...prev,
+        audioFileUrl: resp.data.Result,
+      }));
+      setAudioFileUrl(resp.data.Result);
+      // resp.data.result &&
+      //   (await GenerateAudioCaption(resp.data.result, videoScriptData));
+      if (resp.data.Result) {
+        await GenerateAudioCaption(resp.data.Result, videoScriptData);
+      } else {
+        console.error("No audio URL returned!");
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error generating audio:", error);
+      setLoading(false);
+    }
   };
 
-  const GenerateAudioCaption = async (audioFile) => {
+  /**
+   * used to generate caption from audio file.
+   * @param {*} audioFile
+   */
+  const GenerateAudioCaption = async (audioFile, videoScriptData) => {
     setLoading(true);
     console.log(audioFile);
-    await axios
-      .post("/api/generate-caption", {
-        audioFileUrl: audioFile,
-      })
-      .then((resp) => {
-        console.log(resp.data.result);
-        setCaptions(resp?.data?.result);
-        GenerateImage();
-      });
-
-    console.log(videoScript, captions, audioFileUrl);
+    const resp = await axios.post("/api/generate-caption", {
+      audioFileUrl: audioFile,
+    });
+    setCaptions(resp?.data?.result);
+    setVideoData((prev) => ({
+      ...prev,
+      captions: resp.data.result,
+    }));
+    resp.data.result && GenerateImage(videoScriptData);
   };
 
   // Used to generate AI Images
-  const GenerateImage = () => {
+  const GenerateImage = async (videoScriptData) => {
     let images = [];
-    VideoSCRIPT.forEach(async (element) => {
-      await axios
-        .post("/api/generate-image", {
-          prompt: element?.imagePrompt,
-        })
-        .then((resp) => {
-          console.log(resp.data.result);
-          images.push(resp.data.result);
+    for (const element of videoScriptData) {
+      try {
+        const resp = await axios.post("/api/generate-image", {
+          prompt: element.imagePrompt,
         });
-    });
-    console.log(images);
+        console.log(resp.data.result);
+        images.push(resp.data.result);
+      } catch (e) {
+        console.log("Error:" + e);
+      }
+    }
+    setVideoData((prev) => ({
+      ...prev,
+      imageList: images,
+    }));
     setImageList(images);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    console.log(videoData);
+    if (Object.keys(videoData).length == 4) {
+      SaveVideoData(videoData);
+    }
+  }, [videoData]);
+
+  const SaveVideoData = async (videoData) => {
+    setLoading(true);
+
+    const result = await db
+      .insert(VideoData)
+      .values({
+        script: videoData?.videoScript,
+        audioFileUrl: videoData?.audioFileUrl,
+        captions: videoData?.captions,
+        imageList: videoData?.imageList,
+        createdBy: user?.primaryEmailAddress?.emailAddress,
+      })
+      .returning({ id: VideoData?.id });
+
+    console.log(result);
     setLoading(false);
   };
 
