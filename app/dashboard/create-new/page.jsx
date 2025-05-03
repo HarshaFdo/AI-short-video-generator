@@ -13,6 +13,7 @@ import { db } from "@/configs/db";
 import { VideoData } from "@/configs/schema";
 import { useUser } from "@clerk/nextjs";
 import PlayerDialog from "../_components/PlayerDialog";
+import { useRouter } from "next/navigation";
 
 function CreateNew() {
   const [formData, setFormData] = useState({});
@@ -23,7 +24,7 @@ function CreateNew() {
   const [imageList, setImageList] = useState();
   const [playVideo, setPlayVideo] = useState(true);
   const [videoId, setVideoId] = useState(3);
-
+  
   const { videoData, setVideoData } = useContext(VideoDataContext);
   const { user } = useUser();
   const onHandleInputChange = (fieldName, fieldValue) => {
@@ -191,7 +192,7 @@ function CreateNew() {
         </Button>
       </div>
       <CustomLoading loading={loading} />
-      <PlayerDialog playVideo={playVideo} videoId={videoId}/>
+      <PlayerDialog playVideo={playVideo} videoId={videoId} />
     </div>
   );
 }
