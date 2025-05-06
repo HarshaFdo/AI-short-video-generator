@@ -15,6 +15,13 @@
       "when": 1746074051932,
       "tag": "0001_mean_vertigo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1746499726821,
+      "tag": "0002_far_zzzax",
+      "breakpoints": true
     }
   ]
 }
