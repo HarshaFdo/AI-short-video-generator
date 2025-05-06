@@ -5,7 +5,7 @@ import Image from "next/image";
 import React, { useContext } from "react";
 
 function Header() {
-  const [userDetail, setUserDetail] = useContext(UserDetailContext);
+  const { userDetail, setUserDetail } = useContext(UserDetailContext);
   return (
     <div className="flex items-center justify-between p-2 px-2 shadow-md">
       <div className="flex items-center gap-x-1">
@@ -14,7 +14,7 @@ function Header() {
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <Image src={"/star.png"} />
+          <Image src={"/star.png"} alt="star" width={20} height={20} />
           <h2>{userDetail?.credits}</h2>
         </div>
         <Button>Dashboard</Button>

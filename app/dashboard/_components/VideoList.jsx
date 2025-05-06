@@ -10,6 +10,7 @@ function VideoList({ videoList }) {
     <div className="grid grid-cols-2 gap-10 mt-10 md:grid-cols-3 lg:grid-cols-4">
       {videoList?.map((video, index) => (
         <div
+          key={video?.id} // Add the key prop here
           className="transition-all cursor-pointer hover:scale-105"
           onClick={() => {
             setOpenPlayDialog(Date.now());

@@ -19,6 +19,11 @@ import { toast } from "sonner";
 import { eq } from "drizzle-orm";
 
 function CreateNew() {
+  useEffect(() => {
+    setPlayVideo(false);
+    setVideoId(null);
+  }, []);  
+
   const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [videoScript, setVideoScript] = useState();
@@ -41,7 +46,7 @@ function CreateNew() {
   };
 
   const onCreateClickHandler = () => {
-    if (!userDetail?.credits >= 0) {
+    if (userDetail?.credits < 10) {
       toast("You don't have enough Credits.");
       return;
     }
@@ -156,8 +161,8 @@ function CreateNew() {
   };
 
   useEffect(() => {
-    console.log(videoData);
-    if (Object.keys(videoData).length == 4) {
+    if (videoData && Object.keys(videoData).length == 4) {
+      console.log(videoData);
       SaveVideoData(videoData);
     }
   }, [videoData]);
@@ -221,7 +226,7 @@ function CreateNew() {
         </Button>
       </div>
       <CustomLoading loading={loading} />
-      <PlayerDialog playVideo={playVideo} videoId={videoId} />
+      {playVideo && <PlayerDialog playVideo={playVideo} videoId={videoId} />}
     </div>
   );
 }
